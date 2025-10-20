@@ -46,56 +46,59 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun SpeechCoachApp(modifier: Modifier = Modifier) {
-    var isRecording by remember { mutableStateOf(false) }
+    var showCamera by remember { mutableStateOf(false) }
     
-    Surface(
-        modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+    if (showCamera) {
+        CameraPreviewScreen(
+            onBack = { showCamera = false }
+        )
+    } else {
+        Surface(
+            modifier = modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
         ) {
-            Text(
-                text = "Speech Coach AI",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Text(
-                text = "Improve your speaking skills with AI-powered feedback",
-                fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyLarge
-            )
-            
-            Spacer(modifier = Modifier.height(48.dp))
-            
-            Button(
-                onClick = { 
-                    isRecording = !isRecording
-                    // TODO: Implement speech recording and analysis
-                }
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = if (isRecording) "Stop Recording" else "Start Recording",
-                    fontSize = 18.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    text = "Speech Coach AI",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
-            }
-            
-            if (isRecording) {
-                Spacer(modifier = Modifier.height(24.dp))
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
                 Text(
-                    text = "🎤 Listening...",
-                    fontSize = 18.sp,
-                    color = MaterialTheme.colorScheme.error
+                    text = "Improve your speaking skills with AI-powered feedback",
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                
+                Spacer(modifier = Modifier.height(48.dp))
+                
+                Button(
+                    onClick = { showCamera = true }
+                ) {
+                    Text(
+                        text = "Start Camera Feedback",
+                        fontSize = 18.sp,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text(
+                    text = "Get real-time feedback on:\n• Eye Contact\n• Framing\n• Posture\n• Lighting",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
         }

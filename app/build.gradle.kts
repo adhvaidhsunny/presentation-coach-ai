@@ -66,6 +66,16 @@ dependencies {
 
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.3")
+    
+    // CameraX
+    implementation("androidx.camera:camera-core:1.4.0")
+    implementation("androidx.camera:camera-camera2:1.4.0")
+    implementation("androidx.camera:camera-lifecycle:1.4.0")
+    implementation("androidx.camera:camera-view:1.4.0")
+    implementation("androidx.camera:camera-extensions:1.4.0")
+    
+    // Permissions
+    implementation("com.google.accompanist:accompanist-permissions:0.32.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
