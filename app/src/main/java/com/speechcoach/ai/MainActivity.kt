@@ -95,7 +95,7 @@ fun SpeechCoachApp(modifier: Modifier = Modifier) {
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 Text(
-                    text = "Get real-time feedback on:\n• Eye Contact\n• Framing\n• Posture\n• Lighting",
+                    text = "Get real-time AI feedback on:\n• Eye Contact\n• Framing\n• Posture\n• Lighting\n\nPowered by local AI models",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium
