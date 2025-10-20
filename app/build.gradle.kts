@@ -5,12 +5,12 @@ plugins {
 }
 
 android {
-    namespace = "com.speechcoach.ai"
+    namespace = "com.presentationcoach.ai"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.speechcoach.ai"
-        minSdk = 26  // Android 8.0 and above
+        applicationId = "com.presentationcoach.ai"
+        minSdk = 28  // Android 9.0 and above (required for ExecutorTorch)
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -56,6 +56,8 @@ dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.constraintlayout:constraintlayout:2.2.0-alpha12")
 
     // Compose BOM (Bill of Materials)
     implementation(platform("androidx.compose:compose-bom:2024.10.01"))
@@ -76,6 +78,19 @@ dependencies {
     
     // Permissions
     implementation("com.google.accompanist:accompanist-permissions:0.32.0")
+
+    // ExecutorTorch for on-device AI
+    implementation("org.pytorch:executorch-android:1.0.0")
+    
+    // FBJNI for native code
+    implementation("com.facebook.fbjni:fbjni:0.5.1")
+    
+    // JSON parsing
+    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("org.json:json:20250107")
+    
+    // Material Design
+    implementation("com.google.android.material:material:1.12.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

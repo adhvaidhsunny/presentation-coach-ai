@@ -1,4 +1,4 @@
-package com.speechcoach.ai
+package com.presentationcoach.ai
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -26,16 +26,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.speechcoach.ai.ui.theme.SpeechCoachAITheme
+import com.presentationcoach.ai.ui.theme.PresentationCoachAITheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            SpeechCoachAITheme {
+            PresentationCoachAITheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    SpeechCoachApp(
+                    PresentationCoachApp(
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
@@ -45,7 +45,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun SpeechCoachApp(modifier: Modifier = Modifier) {
+fun PresentationCoachApp(modifier: Modifier = Modifier) {
     var showCamera by remember { mutableStateOf(false) }
     
     if (showCamera) {
@@ -65,7 +65,7 @@ fun SpeechCoachApp(modifier: Modifier = Modifier) {
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "Speech Coach AI",
+                    text = "Presentation Coach",
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -74,7 +74,7 @@ fun SpeechCoachApp(modifier: Modifier = Modifier) {
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 Text(
-                    text = "Improve your speaking skills with AI-powered feedback",
+                    text = "Improve your presentation skills with AI-powered feedback",
                     fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyLarge
@@ -86,7 +86,7 @@ fun SpeechCoachApp(modifier: Modifier = Modifier) {
                     onClick = { showCamera = true }
                 ) {
                     Text(
-                        text = "Start Camera Feedback",
+                        text = "Start Presentation Analysis",
                         fontSize = 18.sp,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
@@ -95,7 +95,7 @@ fun SpeechCoachApp(modifier: Modifier = Modifier) {
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 Text(
-                    text = "Get real-time feedback on:\n• Eye Contact\n• Framing\n• Posture\n• Lighting",
+                    text = "Get real-time AI feedback on:\n• Eye Contact\n• Framing\n• Posture\n• Lighting",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium
@@ -107,9 +107,8 @@ fun SpeechCoachApp(modifier: Modifier = Modifier) {
 
 @Preview(showBackground = true)
 @Composable
-fun SpeechCoachAppPreview() {
-    SpeechCoachAITheme {
-        SpeechCoachApp()
+fun PresentationCoachAppPreview() {
+    PresentationCoachAITheme {
+        PresentationCoachApp()
     }
 }
-
