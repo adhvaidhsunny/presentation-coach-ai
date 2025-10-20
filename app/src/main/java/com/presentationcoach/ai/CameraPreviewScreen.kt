@@ -53,6 +53,14 @@ fun CameraPreviewScreen(
     var lightingGrade by remember { mutableStateOf("B") }
     var explanation by remember { mutableStateOf("Setting up AI models...") }
     var isModelReady by remember { mutableStateOf(false) }
+    var processingStatus by remember { mutableStateOf("Initializing...") }
+    var lastAnalysisTimestamp by remember { mutableStateOf(0L) }
+    var analysisCount by remember { mutableStateOf(0) }
+    var requestSentTime by remember { mutableStateOf<Long?>(null) }
+    var responseReceivedTime by remember { mutableStateOf<Long?>(null) }
+    var isProcessing by remember { mutableStateOf(false) }
+    var fullModelResponse by remember { mutableStateOf("Waiting for first analysis...") }
+    var modelFeedback by remember { mutableStateOf("") }
 
     // Initialize model
     val model = remember {
@@ -67,16 +75,19 @@ fun CameraPreviewScreen(
                 override fun onModelLoaded(modelName: String, success: Boolean, error: String?) {
                     if (success) {
                         explanation = "$modelName model ready!"
+                        processingStatus = "$modelName loaded ✓"
                         Log.d("PresentationCoach", "$modelName loaded successfully")
                         
                         // Mark as ready when LLaVA successfully loads
                         if (modelName == "LLaVA") {
                             isModelReady = true
-                            explanation = "LLaVA ready! Starting analysis..."
+                            explanation = "LLaVA ready! Waiting for first frame..."
+                            processingStatus = "Ready - Waiting for frame"
                             Log.i("PresentationCoach", "LLaVA is ready for frame analysis")
                         }
                     } else {
                         explanation = "Error loading $modelName: $error"
+                        processingStatus = "Error loading model"
                         Log.e("PresentationCoach", "Error loading $modelName: $error")
                         isModelReady = false
                     }
@@ -89,12 +100,53 @@ fun CameraPreviewScreen(
                     lighting: String,
                     exp: String
                 ) {
+                    responseReceivedTime = System.currentTimeMillis()
                     eyeContactGrade = eyeContact
                     framingGrade = framing
                     postureGrade = posture
                     lightingGrade = lighting
                     explanation = exp
-                    Log.d("PresentationCoach", "Analysis: EC=$eyeContact F=$framing P=$posture L=$lighting")
+                    analysisCount++
+                    lastAnalysisTimestamp = System.currentTimeMillis()
+                    isProcessing = false
+                    
+                    val processingTime = if (requestSentTime != null && responseReceivedTime != null) {
+                        ((responseReceivedTime!! - requestSentTime!!) / 1000.0).toString() + "s"
+                    } else {
+                        "N/A"
+                    }
+                    
+                    processingStatus = "Analysis #$analysisCount ✓ (took $processingTime)"
+                    
+                    // Build full model response display
+                    fullModelResponse = buildString {
+                        appendLine("📊 ANALYSIS #$analysisCount")
+                        appendLine("━━━━━━━━━━━━━━━━━━━━━")
+                        appendLine("Eye Contact: $eyeContact")
+                        appendLine("Framing: $framing")
+                        appendLine("Posture: $posture")
+                        appendLine("Lighting: $lighting")
+                        appendLine()
+                        appendLine("📝 Explanation:")
+                        appendLine(exp)
+                        appendLine()
+                        appendLine("⏱️ Timing:")
+                        appendLine("Request sent: ${formatTime(requestSentTime)}")
+                        appendLine("Response received: ${formatTime(responseReceivedTime)}")
+                        appendLine("Processing time: $processingTime")
+                    }
+                    
+                    // Extract feedback/improvement tips
+                    modelFeedback = if (exp.contains("improve") || exp.contains("Improve") || 
+                                        exp.contains("try") || exp.contains("Try") ||
+                                        exp.contains("should") || exp.contains("could")) {
+                        "💡 Tips: $exp"
+                    } else {
+                        "💡 Keep up the good work! The AI will provide improvement suggestions after analyzing your presentation."
+                    }
+                    
+                    Log.d("PresentationCoach", "Analysis #$analysisCount complete: EC=$eyeContact F=$framing P=$posture L=$lighting")
+                    Log.d("PresentationCoach", "Processing time: $processingTime")
                 }
 
                 override fun onTranscriptionResult(transcriptionText: String) {
@@ -103,6 +155,7 @@ fun CameraPreviewScreen(
 
                 override fun onError(error: String) {
                     explanation = "Error: $error"
+                    processingStatus = "Error occurred ✗"
                     Log.e("PresentationCoach", "Error: $error")
                 }
             }
@@ -112,6 +165,8 @@ fun CameraPreviewScreen(
     // Load models on startup
     LaunchedEffect(Unit) {
         try {
+            processingStatus = "Checking model files..."
+            
             // Use the same path as LlamaDemo: /data/local/tmp/llama/
             val modelsDir = "/data/local/tmp/llama"
             
@@ -125,23 +180,27 @@ fun CameraPreviewScreen(
             
             if (!modelExists || !tokenizerExists) {
                 explanation = "Error: Model files not found. Please run ./setup_models.sh first!"
+                processingStatus = "❌ Model files missing"
                 Log.e("PresentationCoach", "Model files not found at $modelsDir")
                 Log.e("PresentationCoach", "Run setup_models.sh to push models to device")
                 return@LaunchedEffect
             }
             
+            processingStatus = "Model files found ✓"
             Log.i("PresentationCoach", "Model files found. Starting LLaVA load...")
             Log.d("PresentationCoach", "Model path: $llavaModelPath")
             Log.d("PresentationCoach", "Tokenizer path: $llavaTokenizerPath")
             
             // Load LLaVA model with proper configuration
             explanation = "Loading LLaVA vision model..."
+            processingStatus = "Loading LLaVA model..."
             model.loadLlavaModel(llavaModelPath, llavaTokenizerPath)
             
             // Note: Whisper audio transcription is not used in this app
             // App focuses solely on visual presentation analysis
         } catch (e: Exception) {
             explanation = "Error initializing models: ${e.message}"
+            processingStatus = "❌ Initialization failed"
             Log.e("PresentationCoach", "Error in model initialization", e)
         }
     }
@@ -165,6 +224,15 @@ fun CameraPreviewScreen(
                 lightingGrade = lightingGrade,
                 explanation = explanation,
                 isModelReady = isModelReady,
+                processingStatus = processingStatus,
+                analysisCount = analysisCount,
+                requestSentTime = requestSentTime,
+                responseReceivedTime = responseReceivedTime,
+                isProcessing = isProcessing,
+                fullModelResponse = fullModelResponse,
+                modelFeedback = modelFeedback,
+                onStatusUpdate = { status -> processingStatus = status },
+                onRequestSent = { requestSentTime = System.currentTimeMillis(); isProcessing = true },
                 onBack = onBack
             )
         }
@@ -191,6 +259,15 @@ fun CameraView(
     lightingGrade: String,
     explanation: String,
     isModelReady: Boolean,
+    processingStatus: String,
+    analysisCount: Int,
+    requestSentTime: Long?,
+    responseReceivedTime: Long?,
+    isProcessing: Boolean,
+    fullModelResponse: String,
+    modelFeedback: String,
+    onStatusUpdate: (String) -> Unit,
+    onRequestSent: () -> Unit,
     onBack: () -> Unit
 ) {
     val cameraExecutor: ExecutorService = remember { Executors.newSingleThreadExecutor() }
@@ -230,25 +307,45 @@ fun CameraView(
                 imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
                     val currentTime = System.currentTimeMillis()
                     
-                    // Only analyze if model is fully loaded, ready, and enough time has passed
-                    if (model.isLlavaLoaded() && model.isLlavaReady() && currentTime - lastAnalysisTime > 3000) {
+                    // Only analyze ONE frame at a time - wait for previous analysis to complete
+                    // Check: model ready, not currently processing, and enough time since last analysis
+                    if (model.isLlavaLoaded() && model.isLlavaReady() && 
+                        !isProcessing && currentTime - lastAnalysisTime > 3000) {
+                        
                         lastAnalysisTime = currentTime
                         
-                        Log.d("PresentationCoach", "Capturing frame for analysis...")
+                        Log.d("PresentationCoach", "Capturing single frame for analysis...")
+                        onStatusUpdate("📸 Capturing frame...")
                         
                         // Convert ImageProxy to Bitmap
                         val bitmap = imageProxyToBitmap(imageProxy)
                         if (bitmap != null) {
-                            Log.d("PresentationCoach", "Frame captured, sending to model for analysis")
+                            Log.d("PresentationCoach", "Frame captured, sending to model (one at a time)")
+                            Log.d("PresentationCoach", "Frame dimensions: ${bitmap.width}x${bitmap.height}")
+                            
+                            // Mark request as sent
+                            onRequestSent()
+                            onStatusUpdate("🧠 Processing image with AI...")
+                            
+                            // Send single frame to model
                             model.analyzeFrame(bitmap)
+                            
+                            Log.d("PresentationCoach", "Frame sent to model. Waiting for response...")
                         } else {
                             Log.w("PresentationCoach", "Failed to convert frame to bitmap")
+                            onStatusUpdate("❌ Frame capture failed")
                         }
                     } else if (!model.isLlavaReady()) {
                         // Log only occasionally to avoid spam
                         if (currentTime - lastAnalysisTime > 5000) {
                             Log.d("PresentationCoach", "Waiting for LLaVA to be ready before analyzing frames...")
+                            onStatusUpdate("⏳ Waiting for model...")
                             lastAnalysisTime = currentTime
+                        }
+                    } else if (isProcessing) {
+                        // Skip frames while processing current one
+                        if (currentTime - lastAnalysisTime > 2000) {
+                            Log.d("PresentationCoach", "Skipping frame - still processing previous image")
                         }
                     }
                     imageProxy.close()
@@ -289,7 +386,13 @@ fun CameraView(
             }
             
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .background(
+                        color = Color.Black.copy(alpha = 0.6f),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(8.dp)
             ) {
                 Text(
                     text = "Presentation Coach",
@@ -312,6 +415,25 @@ fun CameraView(
                         color = Color(0xFFFF9800),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
+                    )
+                }
+                
+                // Processing status
+                Text(
+                    text = processingStatus,
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Normal,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+                
+                // Analysis count
+                if (analysisCount > 0) {
+                    Text(
+                        text = "Analyses: $analysisCount",
+                        color = Color(0xFF4CAF50),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Normal
                     )
                 }
             }
@@ -351,23 +473,126 @@ fun CameraView(
                 color = getGradeColor(lightingGrade)
             )
         }
+        
+        // Right side status panel with timing
+        Column(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 16.dp, top = 80.dp)
+                .width(160.dp)
+                .background(
+                    color = Color.Black.copy(alpha = 0.7f),
+                    shape = RoundedCornerShape(8.dp)
+                )
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = "Request/Response",
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Spacer(modifier = Modifier.height(2.dp))
+            
+            StatusIndicator(
+                label = "Model",
+                status = if (isModelReady) "Ready" else "Loading",
+                isActive = isModelReady
+            )
+            
+            StatusIndicator(
+                label = "Frames Sent",
+                status = "$analysisCount",
+                isActive = analysisCount > 0
+            )
+            
+            if (isProcessing) {
+                Text(
+                    text = "⏳ Processing...",
+                    color = Color(0xFFFF9800),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            // Request time
+            if (requestSentTime != null) {
+                Text(
+                    text = "📤 Sent: ${formatTime(requestSentTime)}",
+                    color = Color(0xFF64B5F6),
+                    fontSize = 9.sp
+                )
+            }
+            
+            // Response time
+            if (responseReceivedTime != null) {
+                Text(
+                    text = "📥 Received: ${formatTime(responseReceivedTime)}",
+                    color = Color(0xFF4CAF50),
+                    fontSize = 9.sp
+                )
+                
+                // Show processing duration
+                if (requestSentTime != null) {
+                    val duration = (responseReceivedTime - requestSentTime) / 1000.0
+                    Text(
+                        text = "⚡ ${String.format("%.2f", duration)}s",
+                        color = Color(0xFFFFD54F),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
 
-        // Bottom feedback overlay
-        Text(
-            text = explanation,
-            color = Color.White,
-            fontSize = 14.sp,
+        // Bottom feedback overlay - Full model response
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(16.dp)
+                .fillMaxWidth()
                 .background(
-                    color = Color.Black.copy(alpha = 0.6f),
-                    shape = RoundedCornerShape(8.dp)
+                    color = Color.Black.copy(alpha = 0.8f),
+                    shape = RoundedCornerShape(12.dp)
                 )
-                .padding(12.dp)
-                .fillMaxWidth(),
-            textAlign = TextAlign.Center
-        )
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "🤖 AI Model Response",
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Text(
+                text = fullModelResponse,
+                color = Color.White,
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                modifier = Modifier.fillMaxWidth()
+            )
+            
+            if (modelFeedback.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = modelFeedback,
+                    color = Color(0xFF4CAF50),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    lineHeight = 18.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color = Color(0xFF1B5E20).copy(alpha = 0.3f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .padding(8.dp)
+                )
+            }
+        }
     }
 }
 
@@ -401,6 +626,44 @@ fun FeedbackItem(
                 )
                 .padding(horizontal = 12.dp, vertical = 6.dp)
         )
+    }
+}
+
+@Composable
+fun StatusIndicator(
+    label: String,
+    status: String,
+    isActive: Boolean
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = label,
+            color = Color.White,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium
+        )
+        
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = "●",
+                color = if (isActive) Color(0xFF4CAF50) else Color(0xFF757575),
+                fontSize = 10.sp
+            )
+            
+            Text(
+                text = status,
+                color = if (isActive) Color(0xFF4CAF50) else Color(0xFFFF9800),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Normal
+            )
+        }
     }
 }
 
@@ -517,22 +780,61 @@ fun getGradeColor(grade: String): Color {
 
 fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap? {
     try {
-        val buffer: ByteBuffer = imageProxy.planes[0].buffer
-        val bytes = ByteArray(buffer.capacity())
-        buffer.get(bytes)
-        
-        // For simplicity, we'll create a simple bitmap
-        // In production, you'd want proper YUV to RGB conversion
-        val bitmap = Bitmap.createBitmap(
+        // Get the YUV image
+        val yBuffer = imageProxy.planes[0].buffer // Y
+        val uBuffer = imageProxy.planes[1].buffer // U
+        val vBuffer = imageProxy.planes[2].buffer // V
+
+        val ySize = yBuffer.remaining()
+        val uSize = uBuffer.remaining()
+        val vSize = vBuffer.remaining()
+
+        val nv21 = ByteArray(ySize + uSize + vSize)
+
+        // U and V are swapped
+        yBuffer.get(nv21, 0, ySize)
+        vBuffer.get(nv21, ySize, vSize)
+        uBuffer.get(nv21, ySize + vSize, uSize)
+
+        val yuvImage = android.graphics.YuvImage(
+            nv21,
+            android.graphics.ImageFormat.NV21,
             imageProxy.width,
             imageProxy.height,
-            Bitmap.Config.ARGB_8888
+            null
         )
+
+        val out = java.io.ByteArrayOutputStream()
+        yuvImage.compressToJpeg(
+            android.graphics.Rect(0, 0, imageProxy.width, imageProxy.height),
+            100,
+            out
+        )
+
+        val imageBytes = out.toByteArray()
+        val bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
         
+        Log.d("ImageConversion", "Successfully converted ImageProxy to Bitmap: ${bitmap.width}x${bitmap.height}")
         return bitmap
     } catch (e: Exception) {
-        Log.e("ImageConversion", "Error converting image: ${e.message}")
+        Log.e("ImageConversion", "Error converting image: ${e.message}", e)
+        e.printStackTrace()
         return null
     }
+}
+
+fun formatTime(timestamp: Long?): String {
+    if (timestamp == null) return "N/A"
+    
+    val calendar = java.util.Calendar.getInstance()
+    calendar.timeInMillis = timestamp
+    
+    return String.format(
+        "%02d:%02d:%02d.%03d",
+        calendar.get(java.util.Calendar.HOUR_OF_DAY),
+        calendar.get(java.util.Calendar.MINUTE),
+        calendar.get(java.util.Calendar.SECOND),
+        calendar.get(java.util.Calendar.MILLISECOND)
+    )
 }
 
