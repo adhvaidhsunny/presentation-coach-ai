@@ -1,0 +1,10 @@
+vision-agents
+opencv-python
+numpy
+websockets
+asyncio
+python-dotenv
+ultralytics
+Pillow
+fastapi
+uvicorn
