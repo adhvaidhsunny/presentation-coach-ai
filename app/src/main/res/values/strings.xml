@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Speech Coach AI</string>
+    <string name="start_recording">Start Recording</string>
+    <string name="stop_recording">Stop Recording</string>
+    <string name="listening">Listening...</string>
+    <string name="app_description">Improve your speaking skills with AI-powered feedback</string>
+</resources>
+
